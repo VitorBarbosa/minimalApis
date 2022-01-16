@@ -30,6 +30,32 @@ app.MapPost("/people", async (Person person, PeopleDb db) =>
     return Results.Created($"/person/{person.Id}", person);
 });
 
+app.MapPut("/people/{id}", async (int id, Person inputPerson, PeopleDb db) =>
+{
+    var person = await db.People.FindAsync(id);
+
+    if (person is null) return Results.NotFound();
+
+    person.LastName = inputPerson.LastName;
+    person.FirstName = inputPerson.FirstName;
+
+    await db.SaveChangesAsync();
+
+    return Results.NoContent();
+});
+
+app.MapDelete("/people/{id}", async (int id, PeopleDb db) =>
+{
+    if (await db.People.FindAsync(id) is Person person)
+    {
+        db.People.Remove(person);
+        await db.SaveChangesAsync();
+        return Results.Ok(person);
+    }
+
+    return Results.NotFound();
+});
+
 app.Run();
 
 class Person
