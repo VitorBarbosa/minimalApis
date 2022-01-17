@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using MiniValidation;
+using System.ComponentModel.DataAnnotations;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
@@ -25,9 +27,24 @@ await db.People.FindAsync(id)
 app.MapPost("/people", async (Person person, PeopleDb db) =>
 {
     db.People.Add(person);
-    db.SaveChangesAsync();
+    await db.SaveChangesAsync();
 
     return Results.Created($"/person/{person.Id}", person);
+});
+
+app.MapPost("/people-validated", async (Person person, PeopleDb db) =>
+{
+    if (MiniValidator.TryValidate(person, out var errors))
+    {
+        db.People.Add(person);
+        await db.SaveChangesAsync();
+
+        return Results.Created($"/person/{person.Id}", person);
+    }
+    else
+    {
+        return Results.ValidationProblem(errors);
+    }
 });
 
 app.MapPut("/people/{id}", async (int id, Person inputPerson, PeopleDb db) =>
@@ -61,6 +78,7 @@ app.Run();
 class Person
 {
     public int Id { get; set; }
+    [Required, MinLength(3)]
     public string FirstName { get; set; }
     public string LastName { get; set; }
 }
